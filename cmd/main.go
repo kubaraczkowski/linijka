@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strings"
 	"time"
 
 	linijka "github.com/kubaraczkowski/linijka/pkg"
 )
+
+const version string = "0.1.0"
 
 func main() {
 	var ipaddress_string string
@@ -20,8 +23,15 @@ func main() {
 	flag.StringVar(&ipaddress_string, "ip", "127.0.0.1", "IP address of the device")
 	flag.IntVar(&port, "port", 4001, "IP port of the device")
 	flag.BoolVar(&oneline, "oneline", false, "Don't split the passed line")
+	version_flag := flag.Bool("v", false, "Display program version and exit")
 
 	flag.Parse()
+
+	if *version_flag {
+		fmt.Println(version)
+		os.Exit(0)
+	}
+
 	ipaddress := net.ParseIP(ipaddress_string)
 	if ipaddress == nil {
 		log.Fatalf("Could not parse IP address: %s", ipaddress_string)
