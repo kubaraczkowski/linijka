@@ -3,6 +3,7 @@ package linijka
 import (
 	"fmt"
 	"io"
+	"log"
 	"strings"
 
 	"golang.org/x/text/encoding/charmap"
@@ -51,6 +52,21 @@ func checkspecial(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+func InjectFlag(text string, flag string) string {
+	var header string
+	if strings.HasPrefix(text, "<START") {
+		split_text := strings.SplitN(text, ">", 2)
+		if len(split_text) == 2 {
+			header = fmt.Sprintf("%s>", split_text[0])
+			text = split_text[1]
+		} else {
+			log.Fatalf("Can't split, got :%s, len(split): %v", text, split_text)
+		}
+	}
+	output := fmt.Sprintf("%s%s%s", header, flag, text)
+	return output
 }
 
 func LinijkaWriter(w io.Writer, text string) (n int, err error) {
