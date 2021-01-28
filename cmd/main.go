@@ -14,7 +14,7 @@ import (
 	linijka "github.com/kubaraczkowski/linijka/pkg"
 )
 
-const version string = "0.2.0"
+const version string = "0.2.1"
 
 type param struct {
 	permanent  *bool
@@ -57,7 +57,7 @@ func main() {
 	var oneline bool
 	var printonly bool
 	p := &param{}
-	flag.StringVar(&ipaddress_string, "ip", "127.0.0.1", "IP address of the device")
+	flag.StringVar(&ipaddress_string, "ip", "192.168.0.50", "IP address of the device")
 	flag.IntVar(&port, "port", 4001, "IP port of the device")
 	flag.BoolVar(&oneline, "oneline", false, "Don't split the passed line")
 	flag.BoolVar(&printonly, "printonly", false, "Only print the messages to be sent, don't connect")
@@ -104,19 +104,25 @@ func main() {
 		}
 	}
 
+	var conn net.Conn
+	var err error
+
+	if !printonly {
+		log.Printf("Connecting to %s:%d", ipaddress, port)
+		var d net.Dialer
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+
+		conn, err = d.DialContext(ctx, "tcp", fmt.Sprintf("%s:%d", ipaddress, port))
+		if err != nil {
+			log.Fatalf("Failed to connect: %v", err)
+		}
+		defer conn.Close()
+	}
+
 	for _, arg := range lines {
 		linijka.LinijkaWriter(log.Writer(), arg)
 		if !printonly {
-			log.Printf("Connecting to %s:%d", ipaddress, port)
-			var d net.Dialer
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			defer cancel()
-
-			conn, err := d.DialContext(ctx, "tcp", fmt.Sprintf("%s:%d", ipaddress, port))
-			if err != nil {
-				log.Fatalf("Failed to connect: %v", err)
-			}
-			defer conn.Close()
 			linijka.LinijkaWriter(conn, arg)
 			status, err := bufio.NewReader(conn).ReadString('\n')
 			if err != nil {
