@@ -1,0 +1,3 @@
+<PERMANENT>Hello
+<SPEED3><DOL>Yellow
+
