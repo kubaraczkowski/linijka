@@ -72,18 +72,57 @@ func main() {
 				mw.loadFile(files[0])
 			}
 		},
-		// Children: []Widget{
-		// 	VSplitter{
 		Children: []Widget{
-			ListBox{
-				AssignTo:              &mw.lb,
-				Model:                 mw.model,
-				OnCurrentIndexChanged: mw.lb_CurrentIndexChanged,
-				OnItemActivated:       mw.lb_ItemActivated,
-				AlwaysConsumeSpace:    true,
+			Composite{
+				Layout: VBox{},
+				Children: []Widget{
+					ListBox{
+						AssignTo:              &mw.lb,
+						Model:                 mw.model,
+						OnCurrentIndexChanged: mw.lb_CurrentIndexChanged,
+						OnItemActivated:       mw.lb_ItemActivated,
+						AlwaysConsumeSpace:    true,
+					},
+					Composite{
+						Layout: HBox{},
+						Children: []Widget{
+							LineEdit{AssignTo: &mw.ledit, OnKeyPress: func(key walk.Key) {
+								switch key {
+								case walk.KeyReturn:
+									log.Println(mw.ledit.Text())
+									if walk.ShiftDown() {
+										mw.sendLine(mw.ledit.Text())
+									} else {
+										mw.addLine(mw.ledit.Text())
+										mw.update()
+									}
+									mw.ledit.SetText("")
+								default:
+								}
+							},
+							},
+							HSpacer{},
+							PushButton{
+								// AssignTo: &sendPB,
+								Text: "Send",
+								OnClicked: func() {
+									log.Println(mw.ledit.Text())
+									mw.sendLine(mw.ledit.Text())
+								},
+							},
+							PushButton{
+								// AssignTo: &acceptPB,
+								Text: "Add",
+								OnClicked: func() {
+									log.Println(mw.ledit.Text())
+									mw.addLine(mw.ledit.Text())
+									mw.update()
+								},
+							},
+						},
+					},
+				},
 			},
-			// 	},
-			// },
 		},
 		MenuItems: []MenuItem{
 			Menu{
@@ -153,6 +192,7 @@ type MyMainWindow struct {
 	disconnectAction *walk.Action
 	sbi              *walk.StatusBarItem
 	permanentAction  *walk.Action
+	ledit            *walk.LineEdit
 }
 
 func (mw *MyMainWindow) lb_CurrentIndexChanged() {
