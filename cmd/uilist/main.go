@@ -18,9 +18,9 @@ import (
 	. "github.com/lxn/walk/declarative"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 
-var ipaddress = "192.168.0.50"
+var ipaddress net.IP
 
 var ipport = 4001
 
@@ -47,7 +47,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	ipaddress := net.ParseIP(ipaddress_string)
+	ipaddress = net.ParseIP(ipaddress_string)
 	if ipaddress == nil {
 		log.Fatalf("Could not parse IP address: %s", ipaddress_string)
 	}
@@ -65,7 +65,7 @@ func main() {
 		AssignTo: &mw.MainWindow,
 		Title:    "Linijka",
 		MinSize:  Size{240, 320},
-		Size:     Size{300, 400},
+		Size:     Size{400, 400},
 		Layout:   VBox{MarginsZero: false},
 		OnDropFiles: func(files []string) {
 			if len(files) >= 1 {
@@ -121,6 +121,15 @@ func main() {
 				Action{AssignTo: &mw.disconnectAction, Text: "Disconnect", Enabled: false, OnTriggered: mw.disconnectAction_Triggered},
 				Separator{},
 				Action{AssignTo: &mw.permanentAction, Text: "Permanent", Enabled: true, Checkable: true, Checked: false},
+				Separator{},
+				Action{Text: "Add line", Enabled: true, OnTriggered: func() {
+					if cmd, err := RunEditDialog(mw); err != nil {
+						log.Print(err)
+					} else if cmd == walk.DlgCmdOK {
+						log.Print("OK")
+					}
+				},
+				},
 			},
 		},
 		StatusBarItems: []StatusBarItem{
@@ -269,18 +278,26 @@ func (mw *MyMainWindow) loadFile(path string) error {
 		if err == io.EOF {
 			break
 		}
-		lin := Linia{Bar: strings.TrimSpace(line)}
 		if len(line) == 0 {
 			break
 		}
-		mw.model.items = append(mw.model.items, &lin)
+		mw.addLine(line)
 		if err != nil {
 			break
 		}
 	}
-	mw.model.PublishItemsReset()
+	mw.update()
 
 	return nil
+}
+
+func (mw *MyMainWindow) addLine(line string) {
+	lin := Linia{Bar: strings.TrimSpace(line)}
+	mw.model.items = append(mw.model.items, &lin)
+}
+
+func (mw *MyMainWindow) update() {
+	mw.model.PublishItemsReset()
 }
 
 func (mw *MyMainWindow) connect() error {
@@ -365,4 +382,53 @@ func send(line string) {
 		}
 		log.Printf("Response: %s", status)
 	}
+}
+
+func RunEditDialog(owner *MyMainWindow) (int, error) {
+	var dlg *walk.Dialog
+	var ledit *walk.LineEdit
+	var acceptPB, cancelPB *walk.PushButton
+	var sendPB *walk.PushButton
+
+	return Dialog{
+		AssignTo:      &dlg,
+		Title:         "Add line",
+		DefaultButton: &acceptPB,
+		CancelButton:  &cancelPB,
+		MinSize:       Size{300, 100},
+		Layout:        VBox{},
+		Children: []Widget{
+			LineEdit{AssignTo: &ledit},
+			Composite{
+				Layout: HBox{},
+				Children: []Widget{
+					PushButton{
+						AssignTo: &sendPB,
+						Text:     "Send line",
+						OnClicked: func() {
+							log.Println(ledit.Text())
+							owner.sendLine(ledit.Text())
+						},
+					},
+					HSpacer{},
+					PushButton{
+						AssignTo: &acceptPB,
+						Text:     "OK",
+						OnClicked: func() {
+							log.Println(ledit.Text())
+							owner.addLine(ledit.Text())
+							owner.update()
+
+							dlg.Accept()
+						},
+					},
+					PushButton{
+						AssignTo:  &cancelPB,
+						Text:      "Cancel",
+						OnClicked: func() { dlg.Cancel() },
+					},
+				},
+			},
+		},
+	}.Run(owner)
 }
